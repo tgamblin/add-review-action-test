@@ -1,0 +1,37 @@
+name: Request maintainer reviews
+
+on:
+  pull_request:
+    branches:
+      - master
+      - develop
+    paths-ignore:
+      # Only run when package files are modified
+      - '!var/spack/repos/builtin/packages/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Add commit to PR branch
+      run: |
+        # setup git user
+        git config --global user.email "$(git show -s --format='%ae')"
+        git config --global user.name "$(git show -s --format='%an')"
+
+        # use GITHBUB_TOKEN for credentials
+        git config --global credential.helper store
+        echo "https://x-oauth-basic:${{ secrets.GITHUB_TOKEN }}@github.com" > ~/.git-credentials
+
+        # make a commit
+        echo foo >> foo
+        git add foo
+        git commit -m foo
+
+        # push it back to origin
+        ref="$(jq --raw-output < $GITHUB_EVENT_PATH '.pull_request.head.ref')"
+        url="$(jq --raw-output < $GITHUB_EVENT_PATH '.pull_request.head.repo.html_url')"
+        echo URL: $url
+        echo REF: $ref
+        git push $url HEAD:$ref
